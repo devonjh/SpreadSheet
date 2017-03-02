@@ -212,6 +212,8 @@ namespace SpreadSheetEngine
 
         public void eventHandle(object sender, PropertyChangedEventArgs e)
         {
+            Dictionary<string, double> newDict = new Dictionary<string, double>();
+
             if ("Text" == e.PropertyName)
             {
                 cellArray c = (sender as cellArray);
@@ -224,14 +226,34 @@ namespace SpreadSheetEngine
                 else
                 {
                     string newText = c.Text;
-
-                    //int findCol = Convert.ToInt32(newText[1] - 65);
-                    //int findRow = Convert.ToInt32(newText.Substring(2)) - 1;
-                    //c.changeCellValue(grid[findRow, findCol].Text);
-
                     ExpTree newTree = new ExpTree(newText.Substring(1));
                     //findCol = Convert.ToInt32(newText[1] - 65);
                     //findRow = Convert.ToInt32(newText.Substring(2)) - 1;
+
+                    newTree.popDict();
+
+                    foreach (KeyValuePair<string, double> x in newTree.backUp)
+                    {
+                        int findCol = Convert.ToInt32(x.Key[0] - 65);
+                        int findRow = Convert.ToInt32(x.Key.Substring(1)) - 1;
+                        if ((grid[findRow, findCol].Value.ToString()) != ""){
+                            newDict.Add(x.Key, Convert.ToDouble(grid[findRow, findCol].Value));
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
+                    newTree.backUp.Clear();
+
+                    foreach (KeyValuePair<string, double> x in newDict)
+                    {
+                        newTree.backUp.Add(x.Key, x.Value);
+                    }
+
+                    newTree.popM();
+
                     if (c.changeCellValue(newTree.Eval().ToString()) != "0"){
                         c.changeCellValue(newTree.Eval().ToString());
                     }
@@ -244,6 +266,8 @@ namespace SpreadSheetEngine
                     //this.Text = grid[findRow, findCol].Value;//**
                 }
 
+                newDict.Clear();
+
                 //c.setVal(this.grid);
                 funcellPropertyChanged(sender as Cell, "CellValue");
             }
@@ -254,9 +278,10 @@ namespace SpreadSheetEngine
 
 	public class ExpTree
 	{
-		public static Dictionary<string, double> m_lookup = new Dictionary<string, double> { };
+        public Dictionary<string, double> backUp = new Dictionary<string, double>();
+        public static Dictionary<string, double> m_lookup = new Dictionary<string, double> { };
 
-		private abstract class Node
+        private abstract class Node
 		{
 			public abstract double Eval();
 		}
@@ -326,12 +351,13 @@ namespace SpreadSheetEngine
 		{
 			private string m_varName;
 
-			public VarNode(string str)
+            public VarNode(string str)
 			{
 				this.m_varName = str;
-			}
+                //Need to add value from grid[findRow,findCol].Value to dictionary.
+            }
 
-			public override double Eval()
+            public override double Eval()
 			{
 				if (m_lookup.ContainsKey(m_varName))
 				{
@@ -347,6 +373,23 @@ namespace SpreadSheetEngine
 		}
 
 
+        public void popDict()
+        {
+            foreach (KeyValuePair<string,double> x in m_lookup)
+            {
+                backUp.Add(x.Key, x.Value);
+            }
+        }
+
+        public void popM()
+        {
+            m_lookup.Clear();
+
+            foreach (KeyValuePair<string, double> x in backUp)
+            {
+                m_lookup.Add(x.Key, x.Value);
+            }
+        }
 
 		private Node m_root;
 
@@ -440,7 +483,15 @@ namespace SpreadSheetEngine
 			{
 				return new ConstNode(num);
 			}
-			return new VarNode(term);
+            VarNode newVar = new VarNode(term);
+
+            if (!m_lookup.ContainsKey(term))
+            {
+                m_lookup.Add(term, 0);
+            }
+            
+    
+            return newVar;
 		}
 
 		private void locateVar(string varName, double Val)
