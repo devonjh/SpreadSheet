@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
 
+//Devon Honig 11416685
+
 
 namespace SpreadSheetEngine
 {
@@ -15,10 +17,14 @@ namespace SpreadSheetEngine
         protected string cellText;
         protected string _Value;
         protected string _Text;
+        protected uint _BGColor;
         readonly int _rowIndex;
         readonly int _columnIndex;
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+        public List<string> references = new List<string>();            //List showing which cells are referenced by current cell.
+        public List<string> referencedBy = new List<string>();          //List showing which cells reference this current cell.
 
         //Cell class constructor
         public Cell()
@@ -52,6 +58,26 @@ namespace SpreadSheetEngine
             {
                 _Value = value;
                 propChange("Value");
+            }
+        }
+
+        public uint BGColor
+        {
+            get
+            {
+                return _BGColor;
+            }
+
+            set
+            {
+                if (_BGColor == value)
+                {
+                    propChange("Color");
+                    return;
+                }
+
+                _BGColor = value;
+                propChange("Color");
             }
         }
 
@@ -91,6 +117,8 @@ namespace SpreadSheetEngine
         public cellArray[,] grid;
         protected int rows;
         protected int columns;
+
+        protected Stack<Cell> undoStack = new Stack<Cell>();        //Stack for undo functionality.
 
 		public spreadSheet()
 		{
@@ -236,9 +264,18 @@ namespace SpreadSheetEngine
                     {
                         int findCol = Convert.ToInt32(x.Key[0] - 65);
                         int findRow = Convert.ToInt32(x.Key.Substring(1)) - 1;
+                        c.references.Add(x.Key);
+                        char col = (char)(c.columnIndex);
+                        string currentCell = string.Format("{0}{1}", col, (char)(c.rowIndex));
+                        Cell tempCell = findCell(findRow, findCol);
+                        tempCell.referencedBy.Add(currentCell);
+                        string cellName = Convert.ToString(c.columnIndex + 65) + Convert.ToChar(c.rowIndex);
+                        tempCell.referencedBy.Add(cellName);
+
                         if ((grid[findRow, findCol].Value.ToString()) != ""){
                             newDict.Add(x.Key, Convert.ToDouble(grid[findRow, findCol].Value));
                         }
+
                         else
                         {
                             continue;
@@ -280,6 +317,8 @@ namespace SpreadSheetEngine
 	{
         public Dictionary<string, double> backUp = new Dictionary<string, double>();
         public static Dictionary<string, double> m_lookup = new Dictionary<string, double> { };
+        List<string> uses = new List<string>();
+        List<string> usedBy = new List<string>();
 
         private abstract class Node
 		{
@@ -395,19 +434,19 @@ namespace SpreadSheetEngine
 
 		public ExpTree(string exp)
 		{
-			//TODO :Parse the expression string and build the tree:
+            //TODO :Parse the expression string and build the tree:
 
-			//for next homework: support:
-			//no parens, single operator:
-			//"A1+47+654+Hello+2
-			//54+275+98
-			//6*7*8
-			//"A2"
+            //for next homework: support:
+            //no parens, single operator:
+            //"A1+47+654+Hello+2
+            //54+275+98
+            //6*7*8
+            //"A2"
 
-			//For HW6
-			//2+3*4
-			//(55-11) / 11
-
+            //For HW6
+            //2+3*4
+            //(55-11) / 11
+            m_lookup.Clear();
 			this.m_root = Compile(exp);
 		}
 

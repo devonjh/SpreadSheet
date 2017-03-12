@@ -3,17 +3,24 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using System.ComponentModel;
 
+//Devon Honig 11416685
+
 namespace Spreadsheet_DHonig
 {
     using SpreadSheetEngine;
-    
+
 
     public partial class Form1 : Form
     {
         private static int numCols = 26;
         private static int numRows = 50;
 
-        spreadSheet spreadObj = new spreadSheet(numRows,numCols);
+        ColorDialog Colors = new ColorDialog();
+
+        spreadSheet spreadObj = new spreadSheet(numRows, numCols);
+
+        Stack<Cell> undoStack = new Stack<Cell>();
+        Stack<Cell> redoStack = new Stack<Cell>();
 
         public Form1()
         {
@@ -23,10 +30,10 @@ namespace Spreadsheet_DHonig
         private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
 
-        } 
+        }
 
         private void Form1_Load(object sender, EventArgs e)
-        {             
+        {
             dataGridView1.Columns.Clear();
             dataGridView1.Rows.Clear();
 
@@ -54,11 +61,11 @@ namespace Spreadsheet_DHonig
             }
 
             //Subscribe each cell.
-            for(i = 0; i < numRows; i++)
+            for (i = 0; i < numRows; i++)
             {
-                for(j = 0; j < numCols; j++)
+                for (j = 0; j < numCols; j++)
                 {
-                    spreadObj.grid[i,j].PropertyChanged += spreadsheetpropChange;
+                    spreadObj.grid[i, j].PropertyChanged += spreadsheetpropChange;
                 }
             }
         }
@@ -67,38 +74,20 @@ namespace Spreadsheet_DHonig
         {
             int findRow = (sender as Cell).rowIndex;
             int findCol = (sender as Cell).columnIndex;
-            dataGridView1.Rows[findRow].Cells[findCol].Value = (sender as Cell).Value;
-        }
 
-		private void button1_Click(object sender, EventArgs e)
-		{
-			ExpTree ex = new ExpTree("Devon+1+A1");
-
-
-			//Demo functions
-			int i = 0;
-
-            for (i = 0; i < 50; i++)
+            if (e.PropertyName == "Text" || e.PropertyName == "Value")
             {
-				spreadObj.grid[i, 1].Text = "This is cell B" + (i + 1).ToString();
-			}
-
-			Random rnd = new Random();
-
-            for (i = 0; i < 50; i++)
-            {
-                int colRND = rnd.Next(2, 26);
-                int rowRND = rnd.Next(0, 50);
-
-                spreadObj.grid[rowRND, colRND].Text = "Hello World.";
-
+                dataGridView1.Rows[findRow].Cells[findCol].Value = (sender as Cell).Value;
             }
 
-			//Set all text values within the A column to match the corresponding B column.
-    //        for (i = 0; i < 50; i++)
-    //        {
-				//spreadObj.grid[i, 0].Text = "=D" + (i + 1).ToString();
-    //        }
+            if (e.PropertyName == "Color")          //Color is passed as property change.
+            {
+                dataGridView1.Rows[findRow].Cells[findCol].Style.BackColor = System.Drawing.Color.FromArgb((sender as Cell).BGColor);
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
         }
 
         private void dataGridView1_CellBeginEdit_1(object sender, DataGridViewCellCancelEventArgs e)
@@ -115,7 +104,38 @@ namespace Spreadsheet_DHonig
             int findRow = e.RowIndex;
             int findCol = e.ColumnIndex;
 
-            spreadObj.grid[findRow, findCol].Text = (dataGridView1.Rows[findRow].Cells[findCol].Value.ToString());
+            undoStack.Push(spreadObj.grid[findRow, findCol]);
+            spreadObj.grid[findRow, findCol].Text = (dataGridView1.Rows[findRow].Cells[findCol].Value.ToString()) + " "; //Space reinvokes property change in case text was not changed.
+
+            //Update all cells that reference current cell.
+
+        }
+
+        private void changeBackgroundColorToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (Colors.ShowDialog() == DialogResult.OK)
+            {
+                int colorInt = Colors.Color.ToArgb();
+
+                for (int i = 0; i < dataGridView1.SelectedCells.Count; i++)
+                {
+                    Cell tempCell = spreadObj.findCell(dataGridView1.SelectedCells[i].RowIndex, dataGridView1.SelectedCells[i].ColumnIndex);
+                    tempCell.BGColor = (colorInt);
+                }
+            }
+            
+        }
+
+        private void undoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (undoStack.Count > 1)
+            {
+                undoStack.Pop();
+                Cell newCell = undoStack.Pop();
+
+                //dataGridView1.Rows[newCell.rowIndex].Cells[newCell.columnIndex].Value = newCell.Value;
+                spreadObj.grid[newCell.rowIndex, newCell.columnIndex].Text = newCell.Text;
+            }
         }
     }
 }
