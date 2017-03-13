@@ -82,7 +82,7 @@ namespace Spreadsheet_DHonig
 
             if (e.PropertyName == "Color")          //Color is passed as property change.
             {
-                dataGridView1.Rows[findRow].Cells[findCol].Style.BackColor = System.Drawing.Color.FromArgb((sender as Cell).BGColor);
+                dataGridView1.Rows[findRow].Cells[findCol].Style.BackColor = System.Drawing.Color.FromArgb((int)(sender as Cell).BGColor);
             }
         }
 
@@ -108,6 +108,29 @@ namespace Spreadsheet_DHonig
             spreadObj.grid[findRow, findCol].Text = (dataGridView1.Rows[findRow].Cells[findCol].Value.ToString()) + " "; //Space reinvokes property change in case text was not changed.
 
             //Update all cells that reference current cell.
+            Cell tempCell = spreadObj.findCell( findRow, findCol);
+            int i = 0;
+            int j = 5;
+            foreach (string x in tempCell.references)
+            {
+                findCol = Convert.ToInt32(x[0] - 65);
+                findRow = Convert.ToInt32(x.Substring(1));
+                //foreach (string y in tempCell1.referencedBy)
+                //{
+                //    dataGridView1.Rows[k].Cells[6].Value = y;
+                //    k++;
+                //}
+                dataGridView1.Rows[i].Cells[j].Value = x;
+                i++;
+            }
+
+            Cell tempCell1 = spreadObj.findCell(0, 0);
+            int k = 0;
+            foreach (string x in tempCell1.referencedBy)
+            {
+                dataGridView1.Rows[k].Cells[6].Value = x;
+                k++;
+            }
 
         }
 
@@ -120,7 +143,7 @@ namespace Spreadsheet_DHonig
                 for (int i = 0; i < dataGridView1.SelectedCells.Count; i++)
                 {
                     Cell tempCell = spreadObj.findCell(dataGridView1.SelectedCells[i].RowIndex, dataGridView1.SelectedCells[i].ColumnIndex);
-                    tempCell.BGColor = (colorInt);
+                    tempCell.BGColor = (uint)(colorInt);
                 }
             }
             

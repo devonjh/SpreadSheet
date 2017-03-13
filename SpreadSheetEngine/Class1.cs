@@ -23,8 +23,8 @@ namespace SpreadSheetEngine
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public List<string> references = new List<string>();            //List showing which cells are referenced by current cell.
-        public List<string> referencedBy = new List<string>();          //List showing which cells reference this current cell.
+        private List<string> _references = new List<string>();            //List showing which cells are referenced by current cell.
+        private List<string> _referencedBy = new List<string>();          //List showing which cells reference this current cell.
 
         //Cell class constructor
         public Cell()
@@ -45,6 +45,13 @@ namespace SpreadSheetEngine
 
         //columnIndex readonly property.
         public int columnIndex { get { return _columnIndex; } }
+
+        public List<string> references
+        {
+            get { return _references; } 
+        }
+
+        public List<string> referencedBy { get { return _referencedBy; } }
 
         //Value property
         public string Value
@@ -255,6 +262,7 @@ namespace SpreadSheetEngine
                 {
                     string newText = c.Text;
                     ExpTree newTree = new ExpTree(newText.Substring(1));
+                    c.references.Clear();
                     //findCol = Convert.ToInt32(newText[1] - 65);
                     //findRow = Convert.ToInt32(newText.Substring(2)) - 1;
 
@@ -264,13 +272,21 @@ namespace SpreadSheetEngine
                     {
                         int findCol = Convert.ToInt32(x.Key[0] - 65);
                         int findRow = Convert.ToInt32(x.Key.Substring(1)) - 1;
-                        c.references.Add(x.Key);
-                        char col = (char)(c.columnIndex);
-                        string currentCell = string.Format("{0}{1}", col, (char)(c.rowIndex));
+                        string cellName = x.Key;
+                        if (!c.references.Contains(cellName))
+                        {
+                            c.references.Add(x.Key);
+                        }
+                        char col = (char)(c.columnIndex + 65);           //change to c related text.
+                        char row = (char)(c.rowIndex + 48);
+                        string currentCell = string.Format("{0}{1}", col, row);
                         Cell tempCell = findCell(findRow, findCol);
-                        tempCell.referencedBy.Add(currentCell);
-                        string cellName = Convert.ToString(c.columnIndex + 65) + Convert.ToChar(c.rowIndex);
-                        tempCell.referencedBy.Add(cellName);
+                        if (!tempCell.referencedBy.Contains(currentCell))
+                        {
+                            tempCell.referencedBy.Add(currentCell);
+                        }
+                        //string cellName = Convert.ToString(c.columnIndex + 65) + Convert.ToChar(c.rowIndex);
+                        //tempCell.referencedBy.Add(cellName);
 
                         if ((grid[findRow, findCol].Value.ToString()) != ""){
                             newDict.Add(x.Key, Convert.ToDouble(grid[findRow, findCol].Value));
