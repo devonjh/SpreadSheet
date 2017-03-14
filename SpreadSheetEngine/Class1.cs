@@ -278,8 +278,8 @@ namespace SpreadSheetEngine
                             c.references.Add(x.Key);
                         }
                         char col = (char)(c.columnIndex + 65);           //change to c related text.
-                        char row = (char)(c.rowIndex + 48);
-                        string currentCell = string.Format("{0}{1}", col, row);
+                        string rowString = (c.rowIndex + 1).ToString();
+                        string currentCell = string.Format("{0}{1}", col, rowString);
                         Cell tempCell = findCell(findRow, findCol);
                         if (!tempCell.referencedBy.Contains(currentCell))
                         {

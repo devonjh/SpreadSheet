@@ -124,7 +124,7 @@ namespace Spreadsheet_DHonig
                 i++;
             }
 
-            Cell tempCell1 = spreadObj.findCell(0, 0);
+            Cell tempCell1 = spreadObj.findCell(1, 0);
             int k = 0;
             foreach (string x in tempCell1.referencedBy)
             {
