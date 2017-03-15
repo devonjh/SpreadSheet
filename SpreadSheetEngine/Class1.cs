@@ -1,10 +1,12 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using System.Xml;
 
 //Devon Honig 11416685
 
@@ -127,10 +129,10 @@ namespace SpreadSheetEngine
 
         protected Stack<Cell> undoStack = new Stack<Cell>();        //Stack for undo functionality.
 
-		public spreadSheet()
-		{
+        public spreadSheet()
+        {
 
-		}
+        }
 
         private int countRows
         {
@@ -148,55 +150,55 @@ namespace SpreadSheetEngine
             }
         }
 
-		//Class to create the 2D array.
-		public class cellArray : Cell
-		{
-			public cellArray(int rowI, int colI) : base(rowI, colI)
-			{
-			}
+        //Class to create the 2D array.
+        public class cellArray : Cell
+        {
+            public cellArray(int rowI, int colI) : base(rowI, colI)
+            {
+            }
 
-			public static cellArray makeCell(int rowI, int colI)
-			{
-				return new cellArray(rowI, colI);
-			}
+            public static cellArray makeCell(int rowI, int colI)
+            {
+                return new cellArray(rowI, colI);
+            }
 
-			//function to set the value if the first text character is '='
-			public void setVal(cellArray[,] grid)
-			{
-				string newText = this.Text;
-				int findCol;
-				int findRow;
+            //function to set the value if the first text character is '='
+            public void setVal(cellArray[,] grid)
+            {
+                string newText = this.Text;
+                int findCol;
+                int findRow;
 
-				//The first character is '=' which means the current cell text will be set to the given cell text.
-				if (newText != "")
-				{
-					if (newText[0] == '=')
-					{
-						//THIS IS WHERE EXPTREE WILL GO.
+                //The first character is '=' which means the current cell text will be set to the given cell text.
+                if (newText != "")
+                {
+                    if (newText[0] == '=')
+                    {
+                        //THIS IS WHERE EXPTREE WILL GO.
 
-						findCol = Convert.ToInt32(newText[1] - 65);
-						findRow = Convert.ToInt32(newText.Substring(2)) - 1;
-						_Value = grid[findRow, findCol].Value;
-					}
+                        findCol = Convert.ToInt32(newText[1] - 65);
+                        findRow = Convert.ToInt32(newText.Substring(2)) - 1;
+                        _Value = grid[findRow, findCol].Value;
+                    }
 
-					else
-					{
-						_Value = Text;
-					}
-				}
+                    else
+                    {
+                        _Value = Text;
+                    }
+                }
 
-				else
-				{
-					return;
-				}
-			}
+                else
+                {
+                    return;
+                }
+            }
 
             public string changeCellValue(string newString)
             {
                 _Value = newString;          //Need to be able to invoke the setVal or iNotify here.
                 return _Value;
             }
-		}
+        }
 
         //cell property changed event handler.
         public event PropertyChangedEventHandler cellPropertyChanged;
@@ -288,7 +290,8 @@ namespace SpreadSheetEngine
                         //string cellName = Convert.ToString(c.columnIndex + 65) + Convert.ToChar(c.rowIndex);
                         //tempCell.referencedBy.Add(cellName);
 
-                        if ((grid[findRow, findCol].Value.ToString()) != ""){
+                        if ((grid[findRow, findCol].Value.ToString()) != "")
+                        {
                             newDict.Add(x.Key, Convert.ToDouble(grid[findRow, findCol].Value));
                         }
 
@@ -307,7 +310,8 @@ namespace SpreadSheetEngine
 
                     newTree.popM();
 
-                    if (c.changeCellValue(newTree.Eval().ToString()) != "0"){
+                    if (c.changeCellValue(newTree.Eval().ToString()) != "0")
+                    {
                         c.changeCellValue(newTree.Eval().ToString());
                     }
 
@@ -327,21 +331,61 @@ namespace SpreadSheetEngine
 
             //c.setVal(this.grid);
         }
-	}
 
-	public class ExpTree
-	{
+
+        public void saveSheet(StreamWriter writeStream)             //Function to save the current spreadsheet as XML file.
+        {
+            XmlTextWriter xWriter = new XmlTextWriter(writeStream);
+            xWriter.Formatting = Formatting.Indented;
+            xWriter.WriteStartElement("SpreadSheet");           //Create the overlying 'SpreadSheet' Element.
+
+            for (int i = 0; i < 50; i++)
+            {
+                for (int j = 0; j < 26; j++)
+                {
+                    if (grid[i, j].Text != "")       //The text is not null, therefore write it to the file.
+                    {
+                        xWriter.WriteStartElement("Cell");
+                        //Write the CellName Element Node.
+                        xWriter.WriteStartElement("CellName");
+                        string cellName = string.Format("{0}{1}", (char)(i + 65), (j + 1).ToString());
+                        xWriter.WriteString(cellName);
+                        xWriter.WriteEndElement();
+
+                        //Write the cellColor Element Node.
+                        xWriter.WriteStartElement("CellColor");
+                        xWriter.WriteString(grid[i, j].BGColor.ToString());
+                        xWriter.WriteEndElement();
+
+                        //Write the cellText Element Node.
+                        xWriter.WriteStartElement("CellTExt");
+                        string cellText = grid[i, j].Text;
+                        xWriter.WriteString(cellText);
+                        xWriter.WriteEndElement();
+                        xWriter.WriteEndElement();
+                    }
+                }
+            }
+
+            xWriter.WriteEndElement();              //Close the Spreadsheet element node.
+
+        }
+    }
+
+
+    public class ExpTree
+    {
         public Dictionary<string, double> backUp = new Dictionary<string, double>();
         public static Dictionary<string, double> m_lookup = new Dictionary<string, double> { };
         List<string> uses = new List<string>();
         List<string> usedBy = new List<string>();
 
         private abstract class Node
-		{
-			public abstract double Eval();
-		}
+        {
+            public abstract double Eval();
+        }
 
-		/*private class Node //this is just like declaring a private variable
+        /*private class Node //this is just like declaring a private variable
         {
             public ?? Data;
             Node Left, Right;
@@ -354,83 +398,83 @@ namespace SpreadSheetEngine
             }
         }*/
 
-		private class ConstNode : Node
-		{
-			private double m_value;
+        private class ConstNode : Node
+        {
+            private double m_value;
 
-			public ConstNode(double value)
-			{
-				m_value = value;
-			}
+            public ConstNode(double value)
+            {
+                m_value = value;
+            }
 
 
-			public override double Eval()
-			{
-				return m_value;
-			}
-		}
+            public override double Eval()
+            {
+                return m_value;
+            }
+        }
 
-		private class OpNode : Node
-		{
-			private char m_op;
-			private Node m_left, m_right;
+        private class OpNode : Node
+        {
+            private char m_op;
+            private Node m_left, m_right;
 
-			public OpNode(char op, Node childrenL, Node childrenR)
-			{
-				m_op = op;
-				m_left = childrenL;
-				m_right = childrenR;
-			}
+            public OpNode(char op, Node childrenL, Node childrenR)
+            {
+                m_op = op;
+                m_left = childrenL;
+                m_right = childrenR;
+            }
 
-			public override double Eval()
-			{
-				double left = m_left.Eval();
-				double right = m_right.Eval();
-				switch (m_op)
-				{
-					case '+':
-						return left + right;
-					case '-':
-						return left - right; //this might be wrong
-					case '*':
-						return left * right;
-					case '/':
-						return left / right;
-						//etc
-				}
-				return 0;
-			}
-		}
+            public override double Eval()
+            {
+                double left = m_left.Eval();
+                double right = m_right.Eval();
+                switch (m_op)
+                {
+                    case '+':
+                        return left + right;
+                    case '-':
+                        return left - right; //this might be wrong
+                    case '*':
+                        return left * right;
+                    case '/':
+                        return left / right;
+                        //etc
+                }
+                return 0;
+            }
+        }
 
-		private class VarNode : Node
-		{
-			private string m_varName;
+        private class VarNode : Node
+        {
+            private string m_varName;
 
             public VarNode(string str)
-			{
-				this.m_varName = str;
+            {
+                this.m_varName = str;
                 //Need to add value from grid[findRow,findCol].Value to dictionary.
             }
 
             public override double Eval()
-			{
-				if (m_lookup.ContainsKey(m_varName))
-				{
-					return m_lookup[m_varName];
-				}
+            {
+                if (m_lookup.ContainsKey(m_varName))
+                {
+                    return m_lookup[m_varName];
+                }
 
-				else
-				{
-					m_lookup.Add(m_varName, 0);
-					return m_lookup[m_varName];
-				}
-			}
-		}
+                else
+                {
+                    m_lookup.Add(m_varName, 0);
+                    return m_lookup[m_varName];
+                }
+            }
+        }
 
 
         public void popDict()
         {
-            foreach (KeyValuePair<string,double> x in m_lookup)
+            foreach (KeyValuePair<string, double> x in m_lookup)
             {
                 backUp.Add(x.Key, x.Value);
             }
@@ -446,10 +490,10 @@ namespace SpreadSheetEngine
             }
         }
 
-		private Node m_root;
+        private Node m_root;
 
-		public ExpTree(string exp)
-		{
+        public ExpTree(string exp)
+        {
             //TODO :Parse the expression string and build the tree:
 
             //for next homework: support:
@@ -463,160 +507,161 @@ namespace SpreadSheetEngine
             //2+3*4
             //(55-11) / 11
             m_lookup.Clear();
-			this.m_root = Compile(exp);
-		}
+            this.m_root = Compile(exp);
+        }
 
-		private static Node Compile(string exp)
-		{
-			//find first operator:
-			//build parent operator node:
-			//parent.left = buildsimple before op char
-			//parent.right = compile(after opchar)
-			//return parent;
+        private static Node Compile(string exp)
+        {
+            //find first operator:
+            //build parent operator node:
+            //parent.left = buildsimple before op char
+            //parent.right = compile(after opchar)
+            //return parent;
 
-			//handle whitespace:
-			exp = exp.Replace(" ", "");
+            //handle whitespace:
+            exp = exp.Replace(" ", "");
 
-			/*for (int i = exp.Length - 1; i >= 0; i--)		//Backwards for order 
-			{
-				switch (exp[i])
-				{
-					case '+':
-					case '-':
-					case '*':
-					case '/':
-						return new OpNode(exp[i], Compile(exp.Substring(0, i)), Compile(exp.Substring(i + 1)));
-				}
-			}*/
+            /*for (int i = exp.Length - 1; i >= 0; i--)		//Backwards for order 
+            {
+                switch (exp[i])
+                {
+                    case '+':
+                    case '-':
+                    case '*':
+                    case '/':
+                        return new OpNode(exp[i], Compile(exp.Substring(0, i)), Compile(exp.Substring(i + 1)));
+                }
+            }*/
 
-			//If first char is '(' and last char is a matching ')', remove parens.
+            //If first char is '(' and last char is a matching ')', remove parens.
 
-			if (exp[0] == '(')
-			{
-				int counter = 1;
-				for (int i = 1; i < exp.Length; i++)
-				{
-					if (exp[i] == ')')
-					{ 
-						counter--;
-						if (counter == 0)
-						{
-							if (i == exp.Length - 1)
-							{
-								return Compile(exp.Substring(1, exp.Length-2));		//Run compile on expression without enclosing brackets.
-							}
-							else
-							{
-								break;
-							}
-						}
-					}
+            if (exp[0] == '(')
+            {
+                int counter = 1;
+                for (int i = 1; i < exp.Length; i++)
+                {
+                    if (exp[i] == ')')
+                    {
+                        counter--;
+                        if (counter == 0)
+                        {
+                            if (i == exp.Length - 1)
+                            {
+                                return Compile(exp.Substring(1, exp.Length - 2));       //Run compile on expression without enclosing brackets.
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
 
-					if (exp[i] == '(')		//Nested Parentheses. Increment Parentheses counter.
-					{
-						counter++;
-					}
-				}
-			}
+                    if (exp[i] == '(')      //Nested Parentheses. Increment Parentheses counter.
+                    {
+                        counter++;
+                    }
+                }
+            }
 
-			int index = GetLowOpIndex(exp);		//Grab index of lowest operand node.
+            int index = GetLowOpIndex(exp);     //Grab index of lowest operand node.
 
-			if (index != -1)
-			{
-				return new OpNode(exp[index], Compile(exp.Substring(0, index)), Compile(exp.Substring(index + 1)));	//Return opnode with recursive compile call.
-			}
+            if (index != -1)
+            {
+                return new OpNode(exp[index], Compile(exp.Substring(0, index)), Compile(exp.Substring(index + 1))); //Return opnode with recursive compile call.
+            }
 
-			return BuildSimple(exp);
-		}
+            return BuildSimple(exp);
+        }
 
-		//only building one node from a string:
-		private static Node BuildSimple(string term)
-		{
-			double num;
-			//tries to parse the string and returns true if the term is a number.
-			if (double.TryParse(term, out num))
-			{
-				return new ConstNode(num);
-			}
+        //only building one node from a string:
+        private static Node BuildSimple(string term)
+        {
+            double num;
+            //tries to parse the string and returns true if the term is a number.
+            if (double.TryParse(term, out num))
+            {
+                return new ConstNode(num);
+            }
             VarNode newVar = new VarNode(term);
 
             if (!m_lookup.ContainsKey(term))
             {
                 m_lookup.Add(term, 0);
             }
-            
-    
+
+
             return newVar;
-		}
+        }
 
-		private void locateVar(string varName, double Val)
-		{
-		}
+        private void locateVar(string varName, double Val)
+        {
+        }
 
-		public double Eval()
-		{
-			if (m_root != null)
-			{
-				return m_root.Eval();
-			}
-			else
-			{
-				return double.NaN;
-			}
-		}
+        public double Eval()
+        {
+            if (m_root != null)
+            {
+                return m_root.Eval();
+            }
+            else
+            {
+                return double.NaN;
+            }
+        }
 
-		private static int GetLowOpIndex(string exp)
-		{
-			int parenCounter = 0;
-			int index = -1;
+        private static int GetLowOpIndex(string exp)
+        {
+            int parenCounter = 0;
+            int index = -1;
 
-			for (int i = exp.Length - 1; i > 0; i--)
-			{
-				switch (exp[i])
-				{
-					case ')':
-						parenCounter--;
-						break;
-					case '(':
-						parenCounter++;
-						break;
-					case '+':
-					case '-':
-						if (parenCounter == 0)
-						{
-							return i;
-						}
-						break;
+            for (int i = exp.Length - 1; i > 0; i--)
+            {
+                switch (exp[i])
+                {
+                    case ')':
+                        parenCounter--;
+                        break;
+                    case '(':
+                        parenCounter++;
+                        break;
+                    case '+':
+                    case '-':
+                        if (parenCounter == 0)
+                        {
+                            return i;
+                        }
+                        break;
 
-					case '*':
-					case '/':
-						if (parenCounter == 0 && index == -1)
-						{
-							index = i;
-						}
-						break;
-				}
-			}
+                    case '*':
+                    case '/':
+                        if (parenCounter == 0 && index == -1)
+                        {
+                            index = i;
+                        }
+                        break;
+                }
+            }
 
-			return index;
-		}
+            return index;
+        }
 
-		public void setVar(string varName, double varValue)
-		{
-			if (m_lookup.ContainsKey(varName))
-			{
-				m_lookup[varName] = varValue;
-			}
-			else
-			{
-				m_lookup.Add(varName, varValue);
-			}
-		}
+        public void setVar(string varName, double varValue)
+        {
+            if (m_lookup.ContainsKey(varName))
+            {
+                m_lookup[varName] = varValue;
+            }
+            else
+            {
+                m_lookup.Add(varName, varValue);
+            }
+        }
 
-		public void clearDict()
-		{
-			m_lookup.Clear();
-		}
-	}
+        public void clearDict()
+        {
+            m_lookup.Clear();
+        }
+    }
+    
 }
 

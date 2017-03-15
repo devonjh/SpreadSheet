@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Windows.Forms;
 using System.ComponentModel;
+using System.IO;
 
 //Devon Honig 11416685
 
@@ -158,6 +159,27 @@ namespace Spreadsheet_DHonig
 
                 //dataGridView1.Rows[newCell.rowIndex].Cells[newCell.columnIndex].Value = newCell.Value;
                 spreadObj.grid[newCell.rowIndex, newCell.columnIndex].Text = newCell.Text;
+            }
+        }
+
+        private void saveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            //Save the spreadsheet as an Xml doc.
+
+            StreamWriter writeStream;
+            //StringWriter newString;
+            SaveFileDialog saveFile = new SaveFileDialog();
+            saveFile.FileName = "text1.xml";
+            saveFile.Filter = "XML-File | *.xml";
+
+            if (saveFile.ShowDialog() == DialogResult.OK)
+            {
+                //StreamWriter newStream = new StreamWriter(saveFile.OpenFile());
+                writeStream = new StreamWriter(saveFile.OpenFile());
+                spreadObj.saveSheet(writeStream);
+                //writeStream.Write("Why aren't you working.");
+                writeStream.Dispose();
+                writeStream.Close();
             }
         }
     }
