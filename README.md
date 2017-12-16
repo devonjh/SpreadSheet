@@ -1,0 +1,1 @@
+Spreadsheet Application written for CPTS 321. This serves as a Microsoft Excel clone. The Spreadsheet supports multi-cell equations, real time cell updates using dependency trees, and workseet saving and loading using XML. 
